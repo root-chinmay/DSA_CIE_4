@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DSA Offline LAN File Sharing & Synchronization System</title>
+  <meta name="description" content="Offline-first LAN file sharing, synchronization, and DSA demonstration platform for local networks without Internet." />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/css/index.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Mobile Backdrop Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="App.closeMobileSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-info">
+          <h1>LAN Sync</h1>
+          <span>DSA ENGINE</span>
+        </div>
+        <button class="mobile-sidebar-close" onclick="App.closeMobileSidebar()" aria-label="Close menu">✕</button>
+      </div>
+
+      <ul class="nav-links">
+        <li>
+          <a class="nav-item active" data-tab="dashboard" onclick="App.navigate('dashboard')">
+            <span class="nav-icon">🏠</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="ip-transfer" onclick="App.navigate('ip-transfer')">
+            <span class="nav-icon">🌐</span>
+            <span>Direct IP Transfer</span>
+            <span class="nav-badge" style="background: rgba(0, 240, 255, 0.2); color: var(--accent-cyan); font-weight: 700;">OFFLINE</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="files" onclick="App.navigate('files')">
+            <span class="nav-icon">📁</span>
+            <span>Shared Files</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="devices" onclick="App.navigate('devices')">
+            <span class="nav-icon">💻</span>
+            <span>Devices & Graph</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="sync" onclick="App.navigate('sync')">
+            <span class="nav-icon">🔄</span>
+            <span>Synchronization</span>
+            <span class="nav-badge danger" id="badge-conflicts" style="display: none;">0</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="transfers" onclick="App.navigate('transfers')">
+            <span class="nav-icon">⚡</span>
+            <span>Transfers Queue</span>
+            <span class="nav-badge" id="badge-transfers" style="display: none;">0</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="duplicates" onclick="App.navigate('duplicates')">
+            <span class="nav-icon">👯</span>
+            <span>Duplicate Finder</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="dsa" onclick="App.navigate('dsa')" style="color: var(--accent-cyan); font-weight: 700;">
+            <span class="nav-icon">🧠</span>
+            <span>DSA Visualizer</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="analytics" onclick="App.navigate('analytics')">
+            <span class="nav-icon">📊</span>
+            <span>Analytics</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-tab="settings" onclick="App.navigate('settings')">
+            <span class="nav-icon">⚙</span>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="peer-chip">
+          <div class="status-dot"></div>
+          <div>
+            <div id="sidebar-host-name" style="font-weight: 600; color: #fff;">Host Laptop</div>
+            <div style="font-size: 11px; color: var(--text-muted);">LAN Mode (No Internet)</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button class="hamburger-btn" onclick="App.toggleMobileSidebar()" aria-label="Toggle Navigation">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <div class="topbar-left">
+            <div class="lan-badge" title="Active local IP address on this router">
+              <span>🟢</span>
+              <span>LAN IP:</span>
+              <span class="lan-ip" id="topbar-lan-ip">127.0.0.1</span>
+            </div>
+
+            <div class="demo-banner" id="topbar-demo-banner" style="display: none;" onclick="App.toggleDemoMode()" title="Click to toggle Demo Mode">
+              <span>🧪</span>
+              <span>DEMO MODE ACTIVE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="pairing-pill" title="6-digit Pairing Code required by peers to connect">
+            <span style="font-size: 11px; font-weight: 600; color: var(--accent-purple); text-transform: uppercase;">Pairing Code:</span>
+            <span class="pairing-code" id="topbar-pairing-code">------</span>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" onclick="App.scanFolders(false)" title="Re-scan shared folders">
+            <span>🔄</span> Rescan
+          </button>
+
+          <button class="btn btn-secondary btn-sm" onclick="App.toggleDemoMode()" id="btn-toggle-demo-top">
+            <span>🧪</span> Demo Mode
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Content Views -->
+      <main class="content-stage">
+        <!-- 1. Dashboard View -->
+        <section class="view-section active" id="view-dashboard"></section>
+
+        <!-- Direct IP Transfer & Mobile Portal View -->
+        <section class="view-section" id="view-ip-transfer"></section>
+
+        <!-- 2. Shared Files Explorer View -->
+        <section class="view-section" id="view-files"></section>
+
+        <!-- 3. Devices & Topology View -->
+        <section class="view-section" id="view-devices"></section>
+
+        <!-- 4. Synchronization View -->
+        <section class="view-section" id="view-sync"></section>
+
+        <!-- 5. Transfers Queue View -->
+        <section class="view-section" id="view-transfers"></section>
+
+        <!-- 6. Duplicate Finder View -->
+        <section class="view-section" id="view-duplicates"></section>
+
+        <!-- 7. DSA Visualizer View -->
+        <section class="view-section" id="view-dsa"></section>
+
+        <!-- 8. Analytics View -->
+        <section class="view-section" id="view-analytics"></section>
+
+        <!-- 9. Settings View -->
+        <section class="view-section" id="view-settings"></section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal: Manual Connect & Pair -->
+  <div class="modal-overlay" id="modal-pair">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 700; color: #fff;">Connect to Peer Laptop</h3>
+        <button class="btn btn-secondary btn-sm" onclick="App.closePairModal()">✕</button>
+      </div>
+      <form onsubmit="App.submitPair(event)">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+              Peer IP Address
+            </label>
+            <input type="text" class="search-input" id="pair-modal-ip" placeholder="e.g. 192.168.1.15" required />
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+              Port
+            </label>
+            <input type="number" class="search-input" id="pair-modal-port" value="8000" required />
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+              6-Digit Pairing Code (Shown on peer laptop's screen)
+            </label>
+            <input type="text" class="search-input" id="pair-modal-code" placeholder="e.g. 583921" maxlength="6" style="letter-spacing: 0.15em; font-family: var(--font-mono); font-weight: 700;" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="App.closePairModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Connect & Authorize</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Network Diagnostics -->
+  <div class="modal-overlay" id="modal-diagnostics">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 700; color: #fff;">Network Diagnostics Report</h3>
+        <button class="btn btn-secondary btn-sm" onclick="App.closeDiagnosticsModal()">✕</button>
+      </div>
+      <div class="modal-body" id="diagnostics-modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="App.closeDiagnosticsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Sticky Navigation -->
+  <nav class="mobile-bottom-nav">
+    <button class="mobile-nav-btn active" data-tab="dashboard" onclick="App.navigate('dashboard')">
+      <span class="mobile-nav-icon">🏠</span>
+      <span class="mobile-nav-text">Home</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="files" onclick="App.navigate('files')">
+      <span class="mobile-nav-icon">📁</span>
+      <span class="mobile-nav-text">Files</span>
+    </button>
+    <button class="mobile-nav-btn highlight-btn" data-tab="ip-transfer" onclick="App.navigate('ip-transfer')">
+      <span class="mobile-nav-icon">🌐</span>
+      <span class="mobile-nav-text">IP Send</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="transfers" onclick="App.navigate('transfers')">
+      <span class="mobile-nav-icon">⚡</span>
+      <span class="mobile-nav-text">Transfers</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="devices" onclick="App.navigate('devices')">
+      <span class="mobile-nav-icon">📱</span>
+      <span class="mobile-nav-text">Devices</span>
+    </button>
+  </nav>
+
+  <!-- Application Scripts -->
+  <script src="/js/lib/qrcode.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/state.js"></script>
+  <script src="/js/components/dashboard.js"></script>
+  <script src="/js/components/ip_transfer.js"></script>
+  <script src="/js/components/explorer.js"></script>
+  <script src="/js/components/devices.js"></script>
+  <script src="/js/components/transfers.js"></script>
+  <script src="/js/components/sync.js"></script>
+  <script src="/js/components/duplicates.js"></script>
+  <script src="/js/components/dsa_visual.js"></script>
+  <script src="/js/components/analytics.js"></script>
+  <script src="/js/components/settings.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -6,10 +6,14 @@ Thread-safe access with automatic connection pooling / context managers.
 
 import sqlite3
 import os
+import tempfile
 import threading
 from typing import List, Dict, Any, Optional
 
-DB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+if os.environ.get("VERCEL"):
+    DB_DIR = os.path.join(tempfile.gettempdir(), "data")
+else:
+    DB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
 DB_PATH = os.path.join(DB_DIR, "offline_sharing.db")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 

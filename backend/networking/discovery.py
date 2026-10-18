@@ -77,8 +77,12 @@ class UDPDeviceDiscovery:
 
     def _broadcast_loop(self) -> None:
         """Periodically announces device presence over UDP broadcast."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        except Exception as e:
+            AppLogger.log("DISCOVERY_BROADCAST_WARN", status="WARN", message=f"UDP broadcast socket unavailable: {e}")
+            return
 
         while self.is_running:
             try:
@@ -102,13 +106,16 @@ class UDPDeviceDiscovery:
                 except Exception:
                     pass
             time.sleep(self.HEARTBEAT_INTERVAL)
-        sock.close()
+        try:
+            sock.close()
+        except Exception:
+            pass
 
     def _listen_loop(self) -> None:
         """Listens for peer UDP announcements."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(("", self.BROADCAST_PORT))
         except Exception as e:
             AppLogger.log("DISCOVERY_BIND_ERROR", status="WARN", message=f"Cannot bind UDP port {self.BROADCAST_PORT}: {e}")

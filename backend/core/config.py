@@ -67,7 +67,11 @@ class AppConfig:
 
         # Base directories
         self.workspace_root: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        self.data_dir: str = os.path.join(self.workspace_root, "data")
+        if os.environ.get("VERCEL"):
+            import tempfile
+            self.data_dir: str = os.path.join(tempfile.gettempdir(), "data")
+        else:
+            self.data_dir: str = os.path.join(self.workspace_root, "data")
         self.default_shared_dir: str = os.path.join(self.data_dir, "shared_files")
         self.downloads_dir: str = os.path.join(self.data_dir, "downloads")
 

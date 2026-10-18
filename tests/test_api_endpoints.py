@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi.testclient import TestClient
-from backend.main import app
+from backend.main import app as main_app
 from backend.demo.demo_simulator import DemoSimulator
 
 
@@ -19,7 +19,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        cls.client = TestClient(main_app)
         # Populate demo dataset for consistent tests
         DemoSimulator.populate_demo_data()
 

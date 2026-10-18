@@ -6,7 +6,7 @@ subnet scanning, and mobile connection info endpoints.
 
 import unittest
 from fastapi.testclient import TestClient
-from backend.main import app
+from backend.main import app as main_app
 from backend.networking.ip_detector import IPDetector
 
 
@@ -14,7 +14,7 @@ class TestDirectIPTransfer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        cls.client = TestClient(main_app)
 
     def test_mobile_info_endpoint(self):
         """Tests that /api/devices/mobile-info returns valid connection URL and pairing code."""

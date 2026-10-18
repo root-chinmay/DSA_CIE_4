@@ -1,3 +1,18 @@
 {
-  "framework": "fastapi"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "fastapi",
+  "functions": {
+    "backend/main.py": {
+      "includeFiles": [
+        "frontend/**",
+        "backend/database/schema.sql"
+      ]
+    },
+    "api/index.py": {
+      "includeFiles": [
+        "frontend/**",
+        "backend/database/schema.sql"
+      ]
+    }
+  }
 }

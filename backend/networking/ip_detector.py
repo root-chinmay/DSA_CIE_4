@@ -18,6 +18,10 @@ class IPDetector:
         Detects primary local LAN IP via OS kernel routing table probe.
         Does not transmit packets over the Internet.
         """
+        import os
+        if os.environ.get("VERCEL"):
+            return "127.0.0.1"
+
         # Method 1: Kernel routing table probe using dummy connection
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

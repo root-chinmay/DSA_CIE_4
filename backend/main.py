@@ -39,11 +39,16 @@ from backend.api import (
 )
 
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+if not os.path.exists(FRONTEND_DIR):
+    cwd_fe = os.path.join(os.getcwd(), "frontend")
+    if os.path.exists(cwd_fe):
+        FRONTEND_DIR = cwd_fe
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle event handler for server startup and teardown."""
+    is_vercel = bool(os.environ.get("VERCEL"))
     config = get_config()
     local_ip = IPDetector.get_local_ip()
     event_bus = get_event_bus()
@@ -63,15 +68,28 @@ async def lifespan(app: FastAPI):
     scanner = get_scanner()
     scanner.scan_all()
 
-    # Start UDP LAN broadcast discovery
-    discovery = get_discovery()
-    discovery.start()
+    # If running on Vercel preview, populate demo data so dashboard and visualizer are populated
+    if is_vercel:
+        try:
+            from backend.demo.demo_simulator import DemoSimulator
+            DemoSimulator.populate_demo_data()
+        except Exception as e:
+            AppLogger.log("DEMO_POPULATE_WARN", status="WARN", message=f"Vercel demo init: {e}")
+
+    # Start UDP LAN broadcast discovery (offline LAN only, disabled in serverless cloud)
+    discovery = None
+    if not is_vercel:
+        try:
+            discovery = get_discovery()
+            discovery.start()
+        except Exception as e:
+            AppLogger.log("DISCOVERY_START_ERROR", status="WARN", message=f"Discovery error: {e}")
 
     banner = f"""
 ========================================================================
   DSA-BASED OFFLINE LAN FILE SHARING & SYNCHRONIZATION SYSTEM
 ========================================================================
-  Status:        ONLINE (OFFLINE-FIRST LAN READY)
+  Status:        ONLINE ({"VERCEL CLOUD PREVIEW" if is_vercel else "OFFLINE-FIRST LAN READY"})
   Local LAN IP:  {local_ip}
   Server Port:   {config.port}
   Dashboard:     http://{local_ip}:{config.port}/
@@ -87,8 +105,15 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    discovery.stop()
-    bridge_task.cancel()
+    if discovery:
+        try:
+            discovery.stop()
+        except Exception:
+            pass
+    try:
+        bridge_task.cancel()
+    except Exception:
+        pass
     AppLogger.log("SYSTEM_SHUTDOWN", status="INFO", message="Server gracefully stopped.")
 
 
@@ -133,9 +158,8 @@ async def websocket_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 
-# Serve Static Frontend Files if frontend exists
+# Serve Static Frontend Files
 if os.path.exists(FRONTEND_DIR):
-    # Mount css, js, assets if present
     css_dir = os.path.join(FRONTEND_DIR, "css")
     js_dir = os.path.join(FRONTEND_DIR, "js")
     if os.path.exists(css_dir):
@@ -143,12 +167,17 @@ if os.path.exists(FRONTEND_DIR):
     if os.path.exists(js_dir):
         app.mount("/js", StaticFiles(directory=js_dir), name="js")
 
-    @app.get("/")
-    async def serve_index():
-        index_file = os.path.join(FRONTEND_DIR, "index.html")
-        if os.path.exists(index_file):
-            return FileResponse(index_file)
-        return {"status": "Backend running. Frontend index.html not yet built."}
+
+@app.get("/")
+async def serve_index():
+    index_file = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {
+        "status": "DSA-Based Offline LAN File Sharing System is running.",
+        "mode": "Vercel Serverless" if os.environ.get("VERCEL") else "Local LAN",
+        "frontend_dir": FRONTEND_DIR
+    }
 
 
 if __name__ == "__main__":

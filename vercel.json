@@ -3,16 +3,10 @@
   "framework": "fastapi",
   "functions": {
     "backend/main.py": {
-      "includeFiles": [
-        "frontend/**",
-        "backend/database/schema.sql"
-      ]
+      "includeFiles": "frontend/**"
     },
     "api/index.py": {
-      "includeFiles": [
-        "frontend/**",
-        "backend/database/schema.sql"
-      ]
+      "includeFiles": "frontend/**"
     }
   }
 }

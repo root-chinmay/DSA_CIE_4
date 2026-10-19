@@ -109,9 +109,13 @@ class TransferManager:
         self.completed_history: List[Dict[str, Any]] = []
         self.is_running: bool = True
 
-        # Start worker thread
-        self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True, name="Transfer-Worker")
-        self.worker_thread.start()
+        # Start worker thread (disabled on serverless cloud like Vercel)
+        is_vercel = bool(os.environ.get("VERCEL"))
+        if not is_vercel:
+            self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True, name="Transfer-Worker")
+            self.worker_thread.start()
+        else:
+            self.worker_thread = None
 
     def enqueue_transfer(
         self,

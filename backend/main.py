@@ -57,16 +57,19 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_running_loop()
     event_bus.set_loop(loop)
 
-    # Start background WebSocket bridge task
-    bridge_task = asyncio.create_task(websocket_bridge_task())
+    # Start background WebSocket bridge task (local LAN only, not supported/needed on serverless Vercel)
+    bridge_task = None
+    if not is_vercel:
+        bridge_task = asyncio.create_task(websocket_bridge_task())
 
     # Ensure default shared folder exists and is registered
-    os.makedirs(config.default_shared_dir, exist_ok=True)
-    StorageManager.add_shared_folder(config.default_shared_dir, "Shared Files")
-
-    # Initial disk scan to populate Tree, Hash Table, and Trie
-    scanner = get_scanner()
-    scanner.scan_all()
+    try:
+        os.makedirs(config.default_shared_dir, exist_ok=True)
+        StorageManager.add_shared_folder(config.default_shared_dir, "Shared Files")
+        scanner = get_scanner()
+        scanner.scan_all()
+    except Exception as e:
+        AppLogger.log("STARTUP_FS_WARN", status="WARN", message=f"Shared dir setup: {e}")
 
     # If running on Vercel preview, populate demo data so dashboard and visualizer are populated
     if is_vercel:
@@ -110,10 +113,11 @@ async def lifespan(app: FastAPI):
             discovery.stop()
         except Exception:
             pass
-    try:
-        bridge_task.cancel()
-    except Exception:
-        pass
+    if bridge_task:
+        try:
+            bridge_task.cancel()
+        except Exception:
+            pass
     AppLogger.log("SYSTEM_SHUTDOWN", status="INFO", message="Server gracefully stopped.")
 
 
